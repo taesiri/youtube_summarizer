@@ -1,14 +1,26 @@
 # youtube-summarize
 
-Web app that summarizes YouTube videos into a user-provided structured format using Gemini.
+Summarize YouTube videos into structured JSON with Gemini. Includes a web UI for building schemas, prompt editing,
+and previewing results.
 
-## Project status
+## Features
 
-Initial CLI only. Web app not implemented yet.
+- FastAPI web app with schema builder (flat fields + one nested level)
+- Prompt editor + schema inference using Gemini
+- JSON output preview with optional raw JSON view
+- Preset load/save from local files (no database)
+- Export JSON button for results
+- CLI for single-video summaries
 
 ## Environment
 
 Use a `.env` file for API keys and secrets. Copy `.env.example` to `.env` and fill in values.
+
+## Install
+
+```bash
+uv sync
+```
 
 ## CLI (single video)
 
@@ -26,4 +38,34 @@ Start the server:
 uv run youtube-summarize-web
 ```
 
-Open `http://127.0.0.1:8000` in your browser to use the schema builder, prompt editor, and JSON preview.
+Open `http://127.0.0.1:8000` in your browser.
+
+### Web UI overview
+
+- Enter a YouTube URL or ID
+- Edit the prompt
+- Build a schema or click "Infer Schema"
+- Click "Summarize" to get JSON + preview
+- Click "Export JSON" to download results
+
+## Presets (file-based)
+
+Presets live in `data/presets` as JSON files:
+
+```json
+{
+  "name": "Summary + Keywords",
+  "prompt": "Summarize the YouTube video.",
+  "schema": { "type": "object", "properties": { "summary": { "type": "string" } } }
+}
+```
+
+Use the Presets dropdown to load or save new ones (no database required).
+
+## API endpoints
+
+- `POST /api/summarize` expects: `video_input`, `prompt`, `schema`, `model`
+- `POST /api/infer-schema` expects: `prompt`, `model`
+- `GET /api/presets` list presets
+- `GET /api/presets/{id}` load preset
+- `POST /api/presets` save preset (`name`, `prompt`, `schema`)

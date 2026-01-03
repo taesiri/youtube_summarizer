@@ -26,10 +26,39 @@
             <input type="text" name="model" value="{{ default_model }}" />
           </label>
 
+          <div class="preset-bar">
+            <div class="preset-row">
+              <label>
+                Load preset
+                <select id="preset-select">
+                  <option value="">Select a preset</option>
+                  {% for preset in presets %}
+                    <option value="{{ preset.id }}" {% if preset.id == default_preset_id %}selected{% endif %}>
+                      {{ preset.name }}
+                    </option>
+                  {% endfor %}
+                </select>
+              </label>
+              <button type="button" id="load-preset" class="ghost">Load</button>
+            </div>
+            <div class="preset-row">
+              <label>
+                Save as
+                <input type="text" id="preset-name" placeholder="e.g. Summary + Keywords" />
+              </label>
+              <button type="button" id="save-preset" class="ghost">Save</button>
+            </div>
+          </div>
+
           <label>
             Prompt
             <textarea name="prompt" rows="12">{{ default_prompt }}</textarea>
           </label>
+
+          <div class="progress hidden" id="progress" hidden>
+            <div class="progress-bar"></div>
+            <span id="progress-text">Summarizing video...</span>
+          </div>
 
           <input type="hidden" name="schema_json" id="schema-json" value="" />
 
@@ -50,10 +79,6 @@
           </div>
 
           <button type="submit" id="submit-btn">Summarize</button>
-          <div class="progress hidden" id="progress" hidden>
-            <div class="progress-bar"></div>
-            <span id="progress-text">Summarizing video...</span>
-          </div>
         </form>
 
         <div class="error hidden" id="error" hidden></div>
@@ -62,7 +87,10 @@
       <section class="card hidden" id="result-card" hidden>
         <div class="result-header">
           <h2>Result Preview</h2>
-          <button type="button" id="toggle-json">Show Raw JSON</button>
+          <div class="result-actions">
+            <button type="button" id="export-json" class="ghost">Export JSON</button>
+            <button type="button" id="toggle-json">Show Raw JSON</button>
+          </div>
         </div>
         <div id="result-preview"></div>
         <pre id="result-json" class="hidden" hidden></pre>

@@ -4,6 +4,10 @@ const schemaFields = document.getElementById("schema-fields");
 const addFieldBtn = document.getElementById("add-field");
 const toggleRawBtn = document.getElementById("toggle-raw");
 const inferSchemaBtn = document.getElementById("infer-schema");
+const presetSelect = document.getElementById("preset-select");
+const loadPresetBtn = document.getElementById("load-preset");
+const savePresetBtn = document.getElementById("save-preset");
+const presetNameInput = document.getElementById("preset-name");
 const rawSchemaBox = document.getElementById("raw-schema");
 const rawSchemaText = document.getElementById("raw-schema-text");
 const schemaJsonInput = document.getElementById("schema-json");
@@ -16,6 +20,7 @@ const resultCard = document.getElementById("result-card");
 const resultPreview = document.getElementById("result-preview");
 const resultJson = document.getElementById("result-json");
 const toggleJsonBtn = document.getElementById("toggle-json");
+const exportJsonBtn = document.getElementById("export-json");
 
 const fieldTypes = ["string", "number", "boolean", "list", "object"];
 
@@ -231,6 +236,22 @@ toggleJsonBtn.addEventListener("click", () => {
   }
 });
 
+exportJsonBtn.addEventListener("click", () => {
+  const content = resultJson.textContent.trim();
+  if (!content) {
+    return;
+  }
+  const blob = new Blob([content], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "summary.json";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+});
+
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   setHidden(errorBox, true);
@@ -317,6 +338,92 @@ inferSchemaBtn.addEventListener("click", async () => {
   } finally {
     setHidden(progress, true);
     inferSchemaBtn.disabled = false;
+  }
+});
+
+loadPresetBtn.addEventListener("click", async () => {
+  const presetId = presetSelect.value;
+  if (!presetId) {
+    errorBox.textContent = "Choose a preset to load.";
+    setHidden(errorBox, false);
+    return;
+  }
+
+  setHidden(errorBox, true);
+  progressText.textContent = "Loading preset...";
+  setHidden(progress, false);
+
+  try {
+    const response = await fetch(`/api/presets/${presetId}`);
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to load preset.");
+    }
+    const promptField = form.querySelector('textarea[name="prompt"]');
+    promptField.value = data.prompt || "";
+    presetNameInput.value = data.name || "";
+    if (data.schema && data.schema.type === "object") {
+      applySchemaToBuilder(data.schema);
+    }
+  } catch (err) {
+    errorBox.textContent = err.message;
+    setHidden(errorBox, false);
+  } finally {
+    setHidden(progress, true);
+  }
+});
+
+savePresetBtn.addEventListener("click", async () => {
+  let name = presetNameInput.value.trim();
+  if (!name && presetSelect.value) {
+    name = presetSelect.options[presetSelect.selectedIndex].textContent.trim();
+  }
+  if (!name) {
+    errorBox.textContent = "Enter a preset name (or select a preset to overwrite).";
+    setHidden(errorBox, false);
+    return;
+  }
+
+  let schema;
+  try {
+    schema = JSON.parse(schemaJsonInput.value);
+  } catch (err) {
+    errorBox.textContent = "Schema JSON is invalid. Use the builder or fix the raw JSON.";
+    setHidden(errorBox, false);
+    return;
+  }
+
+  const promptField = form.querySelector('textarea[name="prompt"]');
+  const payload = {
+    name,
+    prompt: promptField.value,
+    schema,
+  };
+
+  setHidden(errorBox, true);
+  progressText.textContent = "Saving preset...";
+  setHidden(progress, false);
+
+  try {
+    const response = await fetch("/api/presets", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to save preset.");
+    }
+    const option = document.createElement("option");
+    option.value = data.id;
+    option.textContent = data.name;
+    presetSelect.appendChild(option);
+    presetSelect.value = data.id;
+  } catch (err) {
+    errorBox.textContent = err.message;
+    setHidden(errorBox, false);
+  } finally {
+    setHidden(progress, true);
   }
 });
 

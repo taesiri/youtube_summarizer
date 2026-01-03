@@ -19,6 +19,9 @@ from youtube_summarize.prompts import SHARED_VIDEO_PROMPT
 APP_ROOT = Path(__file__).resolve().parent
 TEMPLATES_DIR = APP_ROOT / "web" / "templates"
 STATIC_DIR = APP_ROOT / "web" / "static"
+PRESETS_DIR = APP_ROOT.parent / "data" / "presets"
+DEFAULT_PRESET_ID = "summary_keywords"
+DEFAULT_PROMPT = "Summarize the YouTube video. Return a short summary and a list of keywords."
 
 app = FastAPI(title="YouTube Summarize")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -59,36 +62,68 @@ Return ONLY valid JSON that matches the provided schema.
 
 
 def default_schema_json() -> str:
+    preset = load_preset_safe(DEFAULT_PRESET_ID)
+    if preset and isinstance(preset.get("schema"), dict):
+        return json.dumps(preset["schema"], indent=2)
     schema = {
         "type": "object",
         "properties": {
-            "title": {"type": "string"},
             "summary": {"type": "string"},
-            "key_points": {"type": "array", "items": {"type": "string"}},
-            "action_items": {"type": "array", "items": {"type": "string"}},
-            "people": {"type": "array", "items": {"type": "string"}},
-            "outcome": {"type": "string"},
-            "metrics": {
-                "type": "object",
-                "properties": {
-                    "revenue": {"type": "string"},
-                    "users": {"type": "string"},
-                    "funding": {"type": "string"},
-                },
-            },
+            "keyword": {"type": "array", "items": {"type": "string"}},
         },
-        "required": ["summary"],
+        "required": ["summary", "keyword"],
     }
     return json.dumps(schema, indent=2)
 
 
+def list_presets() -> list[dict[str, Any]]:
+    presets = []
+    if not PRESETS_DIR.exists():
+        return presets
+    for path in sorted(PRESETS_DIR.glob("*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            presets.append({"id": path.stem, "name": payload.get("name", path.stem)})
+        except Exception:
+            continue
+    return presets
+
+
+def load_preset(preset_id: str) -> dict[str, Any]:
+    path = PRESETS_DIR / f"{preset_id}.json"
+    if not path.exists():
+        raise FileNotFoundError(preset_id)
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def load_preset_safe(preset_id: str) -> Optional[dict[str, Any]]:
+    try:
+        return load_preset(preset_id)
+    except Exception:
+        return None
+
+
+def save_preset(preset_id: str, payload: dict[str, Any]) -> None:
+    PRESETS_DIR.mkdir(parents=True, exist_ok=True)
+    path = PRESETS_DIR / f"{preset_id}.json"
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def sanitize_preset_id(value: str) -> str:
+    safe = "".join(ch for ch in value.strip().lower().replace(" ", "_") if ch.isalnum() or ch in "_-")
+    return safe
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request) -> HTMLResponse:
+    default_preset = load_preset_safe(DEFAULT_PRESET_ID) or {}
     context = {
         "request": request,
-        "default_prompt": SHARED_VIDEO_PROMPT,
+        "default_prompt": default_preset.get("prompt", DEFAULT_PROMPT),
         "default_schema": default_schema_json(),
         "default_model": "gemini-3-flash-preview",
+        "presets": list_presets(),
+        "default_preset_id": DEFAULT_PRESET_ID,
         "result_json": None,
         "error": None,
         "video_input": "",
@@ -214,6 +249,42 @@ async def infer_schema(payload: Dict[str, Any]) -> JSONResponse:
         return JSONResponse(status_code=502, content={"error": "Invalid schema returned by model.", "schema": schema})
 
     return JSONResponse(content=schema)
+
+
+@app.get("/api/presets")
+async def presets_list() -> JSONResponse:
+    return JSONResponse(content={"presets": list_presets()})
+
+
+@app.get("/api/presets/{preset_id}")
+async def presets_get(preset_id: str) -> JSONResponse:
+    safe_id = sanitize_preset_id(preset_id)
+    try:
+        preset = load_preset(safe_id)
+    except FileNotFoundError:
+        return JSONResponse(status_code=404, content={"error": "Preset not found."})
+    return JSONResponse(content=preset)
+
+
+@app.post("/api/presets")
+async def presets_save(payload: Dict[str, Any]) -> JSONResponse:
+    name = str(payload.get("name", "")).strip()
+    prompt = payload.get("prompt")
+    schema = payload.get("schema")
+
+    if not name:
+        return JSONResponse(status_code=400, content={"error": "Preset name is required."})
+    if not isinstance(schema, dict):
+        return JSONResponse(status_code=400, content={"error": "Schema must be a JSON object."})
+    if not isinstance(prompt, str):
+        return JSONResponse(status_code=400, content={"error": "Prompt must be a string."})
+
+    preset_id = sanitize_preset_id(name)
+    if not preset_id:
+        return JSONResponse(status_code=400, content={"error": "Preset name has no valid characters."})
+
+    save_preset(preset_id, {"name": name, "prompt": prompt, "schema": schema})
+    return JSONResponse(content={"id": preset_id, "name": name})
 
 
 def run() -> None:
