@@ -1,4 +1,4 @@
-# Youtube Summarizer
+# YouTube Summarizer
 
 Summarize YouTube videos into structured JSON with Gemini 3.0. Includes a web UI for building schemas, prompt editing,
 and previewing results.
