@@ -49,6 +49,13 @@ uv run youtube-summarize "https://www.youtube.com/watch?v=VIDEO_ID" \
   --out out/summary.json
 ```
 
+Batch mode from a text file:
+
+```bash
+uv run youtube-summarize --input-file urls.txt --outdir out \
+  --schema src/data/presets/summary_keywords.json
+```
+
 ## Web app (FastAPI)
 
 Start the server:
