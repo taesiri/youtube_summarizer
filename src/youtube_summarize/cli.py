@@ -3,13 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 from typing import Dict
 
 from google import genai
 
-from youtube_summarize.gemini import extraction_to_json, load_api_key, summarize_video
+from youtube_summarize.gemini import load_api_key, summarize_custom
 from youtube_summarize.prompts import SHARED_VIDEO_PROMPT
+from youtube_summarize.webapp import DEFAULT_PROMPT, DEFAULT_PRESET_ID, load_preset_safe
 
 
 def build_prompt(meta: Dict[str, str]) -> str:
@@ -39,6 +41,10 @@ def parse_args() -> argparse.Namespace:
     ap.add_argument("--upload-date", default="", help="Optional upload date override (YYYY-MM-DD).")
     ap.add_argument("--model", default="gemini-3-flash-preview", help="Gemini model name.")
     ap.add_argument("--out", default="-", help="Output path for JSON (default: stdout).")
+    ap.add_argument("--schema", help="Path to JSON Schema file.")
+    ap.add_argument("--schema-json", help="Inline JSON Schema string.")
+    ap.add_argument("--prompt", help="Prompt override.")
+    ap.add_argument("--prompt-file", help="Path to a prompt text file.")
     return ap.parse_args()
 
 
@@ -53,10 +59,36 @@ def main() -> None:
         "channel": args.channel,
         "upload_date": args.upload_date,
     }
-    prompt = build_prompt(meta)
+    if args.schema_json:
+        schema = json.loads(args.schema_json)
+    elif args.schema:
+        schema = json.loads(Path(args.schema).read_text(encoding="utf-8"))
+    else:
+        preset = load_preset_safe(DEFAULT_PRESET_ID) or {}
+        schema = preset.get("schema") or {
+            "type": "object",
+            "properties": {"summary": {"type": "string"}, "keyword": {"type": "array", "items": {"type": "string"}}},
+            "required": ["summary", "keyword"],
+        }
 
-    extraction = summarize_video(client=client, model=args.model, prompt=prompt, meta=meta)
-    payload = extraction_to_json(extraction)
+    if args.prompt_file:
+        base_prompt = Path(args.prompt_file).read_text(encoding="utf-8")
+    elif args.prompt:
+        base_prompt = args.prompt
+    else:
+        base_prompt = DEFAULT_PROMPT
+    prompt = build_prompt(meta) if base_prompt == SHARED_VIDEO_PROMPT else f"""{base_prompt}
+
+VIDEO METADATA (use exactly):
+- video_url: {meta["video_url"]}
+- title: {meta.get("title","")}
+- channel: {meta.get("channel","")}
+- upload_date: {meta.get("upload_date","")}
+
+Return ONLY valid JSON that matches the provided schema.
+"""
+
+    payload = summarize_custom(client=client, model=args.model, prompt=prompt, meta=meta, schema=schema)
 
     if args.out == "-":
         print(payload)
