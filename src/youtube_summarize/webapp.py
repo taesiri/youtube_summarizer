@@ -14,14 +14,20 @@ from fastapi.templating import Jinja2Templates
 from google import genai
 
 from youtube_summarize.gemini import infer_schema_from_prompt, load_api_key, summarize_custom
+from youtube_summarize.presets import (
+    DEFAULT_PRESET_ID,
+    DEFAULT_PROMPT,
+    list_presets,
+    load_preset,
+    load_preset_safe,
+    sanitize_preset_id,
+    save_preset,
+)
 from youtube_summarize.prompts import SHARED_VIDEO_PROMPT
 
 APP_ROOT = Path(__file__).resolve().parent
 TEMPLATES_DIR = APP_ROOT / "web" / "templates"
 STATIC_DIR = APP_ROOT / "web" / "static"
-PRESETS_DIR = APP_ROOT.parent / "data" / "presets"
-DEFAULT_PRESET_ID = "summary_keywords"
-DEFAULT_PROMPT = "Summarize the YouTube video. Return a short summary and a list of keywords."
 
 app = FastAPI(title="YouTube Summarize")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
@@ -76,42 +82,6 @@ def default_schema_json() -> str:
     return json.dumps(schema, indent=2)
 
 
-def list_presets() -> list[dict[str, Any]]:
-    presets = []
-    if not PRESETS_DIR.exists():
-        return presets
-    for path in sorted(PRESETS_DIR.glob("*.json")):
-        try:
-            payload = json.loads(path.read_text(encoding="utf-8"))
-            presets.append({"id": path.stem, "name": payload.get("name", path.stem)})
-        except Exception:
-            continue
-    return presets
-
-
-def load_preset(preset_id: str) -> dict[str, Any]:
-    path = PRESETS_DIR / f"{preset_id}.json"
-    if not path.exists():
-        raise FileNotFoundError(preset_id)
-    return json.loads(path.read_text(encoding="utf-8"))
-
-
-def load_preset_safe(preset_id: str) -> Optional[dict[str, Any]]:
-    try:
-        return load_preset(preset_id)
-    except Exception:
-        return None
-
-
-def save_preset(preset_id: str, payload: dict[str, Any]) -> None:
-    PRESETS_DIR.mkdir(parents=True, exist_ok=True)
-    path = PRESETS_DIR / f"{preset_id}.json"
-    path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-
-
-def sanitize_preset_id(value: str) -> str:
-    safe = "".join(ch for ch in value.strip().lower().replace(" ", "_") if ch.isalnum() or ch in "_-")
-    return safe
 
 
 @app.get("/", response_class=HTMLResponse)

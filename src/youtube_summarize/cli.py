@@ -10,8 +10,8 @@ from typing import Dict
 from google import genai
 
 from youtube_summarize.gemini import load_api_key, summarize_custom
+from youtube_summarize.presets import DEFAULT_PRESET_ID, DEFAULT_PROMPT, load_preset_safe
 from youtube_summarize.prompts import SHARED_VIDEO_PROMPT
-from youtube_summarize.webapp import DEFAULT_PROMPT, DEFAULT_PRESET_ID, load_preset_safe
 
 
 def build_prompt(meta: Dict[str, str]) -> str:
@@ -34,7 +34,7 @@ Now extract:
 
 
 def parse_args() -> argparse.Namespace:
-    ap = argparse.ArgumentParser(description="Summarize a YouTube video into a fixed structured JSON format.")
+    ap = argparse.ArgumentParser(description="Summarize a YouTube video using a custom JSON Schema.")
     ap.add_argument("video_url", help="Public YouTube video URL.")
     ap.add_argument("--title", default="", help="Optional title override.")
     ap.add_argument("--channel", default="", help="Optional channel override.")
@@ -59,12 +59,19 @@ def main() -> None:
         "channel": args.channel,
         "upload_date": args.upload_date,
     }
+    preset_prompt = None
     if args.schema_json:
         schema = json.loads(args.schema_json)
     elif args.schema:
-        schema = json.loads(Path(args.schema).read_text(encoding="utf-8"))
+        payload = json.loads(Path(args.schema).read_text(encoding="utf-8"))
+        if isinstance(payload, dict) and "schema" in payload:
+            preset_prompt = payload.get("prompt")
+            schema = payload.get("schema")
+        else:
+            schema = payload
     else:
         preset = load_preset_safe(DEFAULT_PRESET_ID) or {}
+        preset_prompt = preset.get("prompt")
         schema = preset.get("schema") or {
             "type": "object",
             "properties": {"summary": {"type": "string"}, "keyword": {"type": "array", "items": {"type": "string"}}},
@@ -75,6 +82,8 @@ def main() -> None:
         base_prompt = Path(args.prompt_file).read_text(encoding="utf-8")
     elif args.prompt:
         base_prompt = args.prompt
+    elif preset_prompt:
+        base_prompt = preset_prompt
     else:
         base_prompt = DEFAULT_PROMPT
     prompt = build_prompt(meta) if base_prompt == SHARED_VIDEO_PROMPT else f"""{base_prompt}

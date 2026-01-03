@@ -9,9 +9,11 @@ and previewing results.
 ## Features
 
 - Prompt editor + schema inference using Gemini
+- Schema builder with one nested level + list support
 - JSON output preview with optional raw JSON view
-- Export JSON 
-- CLI 
+- Export JSON
+- Preset load/save (file-based, no database)
+- CLI with custom JSON Schema and prompt support
 
 ## Environment
 
@@ -23,12 +25,28 @@ Use a `.env` file for API keys and secrets. Copy `.env.example` to `.env` and fi
 uv sync
 ```
 
-## CLI (single video)
+## CLI
 
 Run with `uv`:
 
 ```bash
 uv run youtube-summarize "https://www.youtube.com/watch?v=VIDEO_ID" --out out/summary.json
+```
+
+Use a saved UI preset (prompt + schema):
+
+```bash
+uv run youtube-summarize "https://www.youtube.com/watch?v=VIDEO_ID" \
+  --schema src/data/presets/summary_keywords.json \
+  --out out/summary.json
+```
+
+Provide a custom schema:
+
+```bash
+uv run youtube-summarize "https://www.youtube.com/watch?v=VIDEO_ID" \
+  --schema path/to/schema.json \
+  --out out/summary.json
 ```
 
 ## Web app (FastAPI)
@@ -50,7 +68,7 @@ Open `http://127.0.0.1:8000` in your browser.
 - Click "Summarize" to get JSON + preview
 - Click "Export JSON" to download results
 
-## structured output
+## Structured output
 
 This tool summarizes the video content into a structured JSON format defined by your schema so results are consistent
 and easy to parse.
@@ -59,7 +77,7 @@ and easy to parse.
 
 ## Presets (file-based)
 
-Presets live in `data/presets` as JSON files:
+Presets live in `src/data/presets` as JSON files:
 
 ```json
 {

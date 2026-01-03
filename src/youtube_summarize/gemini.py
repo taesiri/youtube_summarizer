@@ -69,14 +69,28 @@ def summarize_video(
         ]
     )
 
-    raw = gemini_json(
-        client=client,
-        model=model,
-        schema=VideoExtraction.model_json_schema(),
-        contents=contents,
-        thinking_level=thinking_level,
-    )
-    return VideoExtraction.model_validate_json(raw)
+    try:
+        raw = gemini_json(
+            client=client,
+            model=model,
+            schema=VideoExtraction.model_json_schema(),
+            contents=contents,
+            thinking_level=thinking_level,
+        )
+        return VideoExtraction.model_validate_json(raw)
+    except RuntimeError as exc:
+        if "Unsupported MIME type" not in str(exc):
+            raise
+        fallback_prompt = f"{prompt}\n\nVIDEO URL: {meta['video_url']}"
+        contents = types.Content(parts=[types.Part(text=fallback_prompt)])
+        raw = gemini_json(
+            client=client,
+            model=model,
+            schema=VideoExtraction.model_json_schema(),
+            contents=contents,
+            thinking_level=thinking_level,
+        )
+        return VideoExtraction.model_validate_json(raw)
 
 
 def summarize_custom(
@@ -94,13 +108,26 @@ def summarize_custom(
         ]
     )
 
-    return gemini_json(
-        client=client,
-        model=model,
-        schema=schema,
-        contents=contents,
-        thinking_level=thinking_level,
-    )
+    try:
+        return gemini_json(
+            client=client,
+            model=model,
+            schema=schema,
+            contents=contents,
+            thinking_level=thinking_level,
+        )
+    except RuntimeError as exc:
+        if "Unsupported MIME type" not in str(exc):
+            raise
+        fallback_prompt = f"{prompt}\n\nVIDEO URL: {meta['video_url']}"
+        contents = types.Content(parts=[types.Part(text=fallback_prompt)])
+        return gemini_json(
+            client=client,
+            model=model,
+            schema=schema,
+            contents=contents,
+            thinking_level=thinking_level,
+        )
 
 
 def extraction_to_json(extraction: VideoExtraction) -> str:
