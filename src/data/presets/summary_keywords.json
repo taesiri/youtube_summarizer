@@ -1,0 +1,12 @@
+{
+  "name": "Summary + Keywords",
+  "prompt": "Summarize the YouTube video. Return a short summary and a list of keywords.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "summary": {"type": "string"},
+      "keyword": {"type": "array", "items": {"type": "string"}}
+    },
+    "required": ["summary", "keyword"]
+  }
+}
