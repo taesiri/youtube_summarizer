@@ -1,0 +1,47 @@
+[project]
+name = "youtube-summarize"
+version = "0.1.0"
+description = "Web app to summarize YouTube videos into user-defined structured formats."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Your Name" }
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+]
+
+dependencies = [
+  "fastapi>=0.115",
+  "google-genai>=0.6.0",
+  "jinja2>=3.1",
+  "pydantic>=2.7",
+  "python-dotenv>=1.0",
+  "python-multipart>=0.0.9",
+  "uvicorn>=0.30",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0",
+  "ruff>=0.6",
+]
+
+[project.scripts]
+youtube-summarize = "youtube_summarize.cli:main"
+youtube-summarize-web = "youtube_summarize.webapp:run"
+
+[build-system]
+requires = ["setuptools>=69.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.package-data]
+youtube_summarize = ["web/templates/*.html", "web/static/*.css", "web/static/*.js"]
+
+[tool.ruff]
+line-length = 100

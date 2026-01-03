@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>YouTube Summarize</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <script defer src="/static/app.js"></script>
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <h1>YouTube Summarize</h1>
+        <p>Enter a YouTube URL or ID, customize prompt + schema, and get JSON output.</p>
+      </header>
+
+      <section class="card">
+        <form id="summarize-form" class="form">
+          <label>
+            YouTube URL or ID
+            <input type="text" name="video_input" value="{{ video_input }}" placeholder="9WWvLj-NqEE or https://..." required />
+          </label>
+
+          <label>
+            Gemini model
+            <input type="text" name="model" value="{{ default_model }}" />
+          </label>
+
+          <label>
+            Prompt
+            <textarea name="prompt" rows="12">{{ default_prompt }}</textarea>
+          </label>
+
+          <input type="hidden" name="schema_json" id="schema-json" value="" />
+
+          <div class="schema-builder">
+            <div class="schema-header">
+              <h2>Schema Builder</h2>
+              <button type="button" id="add-field">Add Field</button>
+              <button type="button" id="infer-schema">Infer Schema</button>
+              <button type="button" id="toggle-raw">Show Raw Schema</button>
+            </div>
+            <div id="schema-fields"></div>
+            <div id="raw-schema" class="raw-schema hidden">
+              <label>
+                Raw JSON Schema
+                <textarea id="raw-schema-text" rows="14">{{ default_schema }}</textarea>
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="submit-btn">Summarize</button>
+          <div class="progress hidden" id="progress" hidden>
+            <div class="progress-bar"></div>
+            <span id="progress-text">Summarizing video...</span>
+          </div>
+        </form>
+
+        <div class="error hidden" id="error" hidden></div>
+      </section>
+
+      <section class="card hidden" id="result-card" hidden>
+        <div class="result-header">
+          <h2>Result Preview</h2>
+          <button type="button" id="toggle-json">Show Raw JSON</button>
+        </div>
+        <div id="result-preview"></div>
+        <pre id="result-json" class="hidden" hidden></pre>
+      </section>
+    </main>
+  </body>
+</html>
