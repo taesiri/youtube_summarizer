@@ -1,16 +1,17 @@
-# youtube-summarize
+# Youtube Summarizer
 
-Summarize YouTube videos into structured JSON with Gemini. Includes a web UI for building schemas, prompt editing,
+Summarize YouTube videos into structured JSON with Gemini 3.0. Includes a web UI for building schemas, prompt editing,
 and previewing results.
+
+
+![Web Interface](assets/imgs/interface.png)
 
 ## Features
 
-- FastAPI web app with schema builder (flat fields + one nested level)
 - Prompt editor + schema inference using Gemini
 - JSON output preview with optional raw JSON view
-- Preset load/save from local files (no database)
-- Export JSON button for results
-- CLI for single-video summaries
+- Export JSON 
+- CLI 
 
 ## Environment
 
@@ -42,11 +43,19 @@ Open `http://127.0.0.1:8000` in your browser.
 
 ### Web UI overview
 
+
 - Enter a YouTube URL or ID
 - Edit the prompt
 - Build a schema or click "Infer Schema"
 - Click "Summarize" to get JSON + preview
 - Click "Export JSON" to download results
+
+## structured output
+
+This tool summarizes the video content into a structured JSON format defined by your schema so results are consistent
+and easy to parse.
+
+![Output Preview](assets/imgs/output.png)
 
 ## Presets (file-based)
 
@@ -61,6 +70,8 @@ Presets live in `data/presets` as JSON files:
 ```
 
 Use the Presets dropdown to load or save new ones (no database required).
+
+
 
 ## API endpoints
 

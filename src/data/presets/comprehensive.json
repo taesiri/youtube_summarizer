@@ -1,5 +1,5 @@
 {
-  "name": "sample_1",
+  "name": "Detailed Startup Case Study",
   "prompt": "You are extracting structured startup case-study facts from a YouTube video.\n\nHARD RULES:\n- Only extract facts that are explicitly stated or shown in the video.\n- Do NOT infer numbers (revenue, users, spend, funding, etc.). If not stated, set the field to null and add it to missing_info.\n- If a figure is approximate (\"~\", \"about\", \"around\"), keep it and mark confidence=\"medium\".\n- If a figure is unclear/ambiguous, set value=null and explain in notes + missing_info.\n- Success/failure classification:\n  - \"success\" only if the video clearly claims meaningful success (e.g., profitable, significant revenue/users, acquisition, strong growth).\n- \"failure\" only if the video clearly states it failed, shut down, ran out of money, or could not find product-market fit.\n  - Otherwise use \"mixed\" or \"unknown\" with explanation.\n- Competitors: only include competitors explicitly mentioned.\n\nEVIDENCE:\n- For every important claim (metrics, success/failure, competitors, key decisions), include at least one evidence item with a timestamp MM:SS and a short snippet (<= 20 words).\n- If you cannot reliably provide timestamps, use \"N/A\" and note why in limitations.\n\nOUTPUT:\n- Return ONLY valid JSON matching the provided schema.\n",
   "schema": {
     "type": "object",
